@@ -47,7 +47,11 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
             $model->replace($createdCard->__toArray(true));
 
         } catch (Error\Base $e) {
-            $model->replace($e->getJsonBody());
+            if ($e->getJsonBody()) {
+                $model->replace($e->getJsonBody());
+            } else {
+                throw($e);
+            }
         }
     }
 

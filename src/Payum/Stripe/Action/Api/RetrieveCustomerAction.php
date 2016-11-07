@@ -45,8 +45,11 @@ class RetrieveCustomerAction extends GatewayAwareAction implements ApiAwareInter
 
             $model->replace($customer->__toArray(true));
         } catch (Error\Base $e) {
-            echo "error";
-            $model->replace($e->getJsonBody());
+            if ($e->getJsonBody()) {
+                $model->replace($e->getJsonBody());
+            } else {
+                throw($e);
+            }
         }
     }
 

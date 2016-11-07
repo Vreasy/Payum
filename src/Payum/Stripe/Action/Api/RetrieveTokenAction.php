@@ -46,7 +46,11 @@ class RetrieveTokenAction extends GatewayAwareAction implements ApiAwareInterfac
 
             $model->replace($token->__toArray(true));
         } catch (Error\Base $e) {
-            $model->replace($e->getJsonBody());
+            if ($e->getJsonBody()) {
+                $model->replace($e->getJsonBody());
+            } else {
+                throw($e);
+            }
         }
     }
 

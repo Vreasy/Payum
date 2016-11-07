@@ -46,7 +46,11 @@ class RetrieveChargeAction extends GatewayAwareAction implements ApiAwareInterfa
 
             $model->replace($charge->__toArray(true));
         } catch (Error\Base $e) {
-            $model->replace($e->getJsonBody());
+            if ($e->getJsonBody()) {
+                $model->replace($e->getJsonBody());
+            } else {
+                throw($e);
+            }
         }
     }
 
