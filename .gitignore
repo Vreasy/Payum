@@ -6,5 +6,5 @@ vendor
 bin
 src/Payum/Core/Bridge/Propel2/Model/Base
 src/Payum/Core/Bridge/Propel2/Model/Map
-#intellij
+# PhpStorm IDE creates a .idea hidden folder that we don't want to version
 .idea/
