@@ -21,6 +21,7 @@ use Payum\Stripe\Action\CaptureAction;
 use Payum\Stripe\Action\ConvertPaymentAction;
 use Payum\Stripe\Action\ConvertRefundAction;
 use Payum\Stripe\Action\GetCreditCardTokenAction;
+use Payum\Stripe\Action\RefundInfoAction;
 use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Action\StatusAction;
 use Payum\Stripe\Action\ErrorAction;
@@ -51,6 +52,7 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.action.status' => new StatusAction(),
             'payum.action.error' => new ErrorAction(),
             'payum.action.transaction_info' => new TransactionInfoAction(),
+            'payum.action.refund_info' => new RefundInfoAction(),
             'payum.action.get_credit_card_token' => new GetCreditCardTokenAction(),
             'payum.action.obtain_token' => function (ArrayObject $config) {
                 return new ObtainTokenAction($config['payum.template.obtain_token']);
