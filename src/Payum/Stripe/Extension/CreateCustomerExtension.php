@@ -15,6 +15,7 @@ use Payum\Stripe\Request\Api\UpdateCustomer;
 use Payum\Stripe\Request\Api\CreateCustomerSource;
 use Payum\Stripe\Request\Api\CreateCharge;
 use Payum\Stripe\Request\Api\CreateToken;
+use Payum\Stripe\Request\Api\RetrieveToken;
 
 class CreateCustomerExtension implements ExtensionInterface
 {
@@ -101,14 +102,37 @@ class CreateCustomerExtension implements ExtensionInterface
             : $model['card'];
         if (@$customer['id']) {
             if ($model['card'] instanceof SensitiveValue || substr($model['card'], 0, 3) == 'tok') {
-                $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
-                $gateway->execute(new CreateCustomerSource($customerSource));
-                if (!@$customerSource['id']) {
-                    $model['status'] = Constants::STATUS_FAILED;
-                    $model['error'] = @$customerSource['error'];
-                    return;
+                $cardId = null;
+                // If a card token is sent, fetch the available cards of the customer and try
+                // to find one with a matching fingerprint
+                if (substr($model['card'], 0, 3) == 'tok') {
+                    $token = ArrayObject::ensureArrayObject(['token' => $model['card']]);
+                    $gateway->execute(new RetrieveToken($token));
+                    $cards = @$customer['sources']['data'] ?: [];
+                    if ($card = current(array_filter(
+                        @$customer['sources']['data'] ?: [],
+                        function ($card) use ($token) {
+                            return $card['fingerprint'] == $token['card']['fingerprint'];
+                        }
+                    ))) {
+                        $cardId = $card['id'];
+                    }
                 }
-                $local['card_id'] = $customerSource['id'];
+
+                // If no card token was sent, or if no card was found matching the fingerprint of
+                // the token, create a new card for the customer
+                if (!$cardId) {
+                    $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
+                    $gateway->execute(new CreateCustomerSource($customerSource));
+                    if (!@$customerSource['id']) {
+                        $model['status'] = Constants::STATUS_FAILED;
+                        $model['error'] = @$customerSource['error'];
+                        return;
+                    }
+                    $cardId = $customerSource['id'];
+                }
+
+                $local['card_id'] = $cardId;
             } else {
                 $local['card_id'] = $model['card'];
             }

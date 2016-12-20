@@ -32,7 +32,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldCreateCustomerAndReplaceCardTokenOnPreCapture()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => ['save_card' => true],
         ]);
         $request = new Capture($model);
@@ -47,10 +47,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'tok_xxx'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
-                $model['default_source'] = 'theCardToken';
+                $model['default_source'] = 'card_xxx';
             });
         ;
 
@@ -65,19 +65,19 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'source' => 'theCardToken',
-                    'default_source' => 'theCardToken',
+                    'source' => 'tok_xxx',
+                    'default_source' => 'card_xxx',
                 ],
-                'card_id' => 'theCardToken',
+                'card_id' => 'card_xxx',
             ],
-            'source' => 'theCardToken',
+            'source' => 'card_xxx',
         ], (array) $request->getModel());
     }
 
     public function testShouldCreateCustomerWithCustomInfoAndReplaceCardTokenOnPreCapture()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
                 'customer' => ['foo' => 'fooVal', 'bar' => 'barVal'],
@@ -86,6 +86,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $request = new Capture($model);
 
         $gatewayMock = $this->createGatewayMock();
+
         $gatewayMock
             ->expects($this->at(0))
             ->method('execute')
@@ -96,13 +97,13 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
                 $this->assertEquals([
-                    'source' => 'theCardToken',
+                    'source' => 'tok_xxx',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
                 ], (array) $model);
 
                 $model['id'] = 'theCustomerId';
-                $model['default_source'] = 'theCardToken';
+                $model['default_source'] = 'card_xxx';
             });
         ;
 
@@ -117,21 +118,244 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'source' => 'theCardToken',
-                    'default_source' => 'theCardToken',
+                    'source' => 'tok_xxx',
+                    'default_source' => 'card_xxx',
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
                 ],
-                'card_id' => 'theCardToken',
+                'card_id' => 'card_xxx',
             ],
-            'source' => 'theCardToken',
+            'source' => 'card_xxx',
+        ], (array) $request->getModel());
+    }
+
+    public function testShouldRetrieveCustomerAndTokenAndReuseExistingCardOnPreCapture()
+    {
+        $model = new \ArrayObject([
+            'card' => 'tok_xxx',
+            'local' => [
+                'save_card' => true,
+                'customer' => ['id' => 'cus_xxx', 'foo' => 'fooVal', 'bar' => 'barVal'],
+            ],
+        ]);
+        $request = new Capture($model);
+
+        $gatewayMock = $this->createGatewayMock();
+
+        $gatewayMock
+            ->expects($this->at(0))
+            ->method('execute')
+            ->with($this->isInstanceOf(RetrieveCustomer::class))
+            ->willReturnCallback(function(RetrieveCustomer $request) {
+                $model = $request->getModel();
+
+                $this->assertInstanceOf(\ArrayObject::class, $model);
+
+                $this->assertEquals([
+                    'id' => 'cus_xxx',
+                    'foo' => 'fooVal',
+                    'bar' => 'barVal'
+                ], (array) $model);
+
+                $model['id'] = 'cus_xxx';
+                $model['default_source'] = 'card_xxx';
+                $model['sources'] = [
+                    'object' => 'list',
+                    'data' => [
+                        [
+                            'id' => 'card_xxx',
+                            'fingerprint' => 'fingerprint_xxx',
+                        ],
+                        [
+                            'id' => 'card_yyy',
+                            'fingerprint' => 'fingerprint_yyy',
+                        ],
+                    ],
+                ];
+            });
+        ;
+
+        $gatewayMock
+            ->expects($this->at(1))
+            ->method('execute')
+            ->with($this->isInstanceOf(RetrieveToken::class))
+            ->willReturnCallback(function(RetrieveToken $request) {
+                $model = $request->getModel();
+
+                $this->assertInstanceOf(\ArrayObject::class, $model);
+
+                $this->assertEquals([
+                    'token' => 'tok_xxx',
+                ], (array) $model);
+
+                $model['id'] = 'tok_xxx';
+                $model['card'] = [
+                    'id' => 'card_xxx',
+                    'fingerprint' => 'fingerprint_xxx',
+                ];
+            });
+        ;
+
+        $context = new Context($gatewayMock, $request, []);
+
+        $extension = new CreateCustomerExtension();
+        $extension->onPreExecute($context);
+
+        $this->assertEquals([
+            'customer' => 'cus_xxx',
+            'local' => [
+                'save_card' => true,
+                'customer' => [
+                    'id' => 'cus_xxx',
+                    'source' => 'tok_xxx',
+                    'default_source' => 'card_xxx',
+                    'foo' => 'fooVal',
+                    'bar' => 'barVal',
+                    'sources' => [
+                        'object' => 'list',
+                        'data' => [
+                            [
+                                'id' => 'card_xxx',
+                                'fingerprint' => 'fingerprint_xxx',
+                            ],
+                            [
+                                'id' => 'card_yyy',
+                                'fingerprint' => 'fingerprint_yyy',
+                            ],
+                        ],
+                    ],
+                ],
+                'card_id' => 'card_xxx',
+            ],
+            'source' => 'card_xxx',
+        ], (array) $request->getModel());
+    }
+
+    public function testShouldRetrieveCustomerAndTokenAndCreateNewCardOnPreCapture()
+    {
+        $model = new \ArrayObject([
+            'card' => 'tok_xxx',
+            'local' => [
+                'save_card' => true,
+                'customer' => ['id' => 'cus_xxx', 'foo' => 'fooVal', 'bar' => 'barVal'],
+            ],
+        ]);
+        $request = new Capture($model);
+
+        $gatewayMock = $this->createGatewayMock();
+
+        $gatewayMock
+            ->expects($this->at(0))
+            ->method('execute')
+            ->with($this->isInstanceOf(RetrieveCustomer::class))
+            ->willReturnCallback(function(RetrieveCustomer $request) {
+                $model = $request->getModel();
+
+                $this->assertInstanceOf(\ArrayObject::class, $model);
+
+                $this->assertEquals([
+                    'id' => 'cus_xxx',
+                    'foo' => 'fooVal',
+                    'bar' => 'barVal'
+                ], (array) $model);
+
+                $model['id'] = 'cus_xxx';
+                $model['default_source'] = 'card_xxx';
+                $model['sources'] = [
+                    'object' => 'list',
+                    'data' => [
+                        [
+                            'id' => 'card_xxx',
+                            'fingerprint' => 'fingerprint_xxx',
+                        ],
+                        [
+                            'id' => 'card_yyy',
+                            'fingerprint' => 'fingerprint_yyy',
+                        ],
+                    ],
+                ];
+            });
+        ;
+
+        $gatewayMock
+            ->expects($this->at(1))
+            ->method('execute')
+            ->with($this->isInstanceOf(RetrieveToken::class))
+            ->willReturnCallback(function(RetrieveToken $request) {
+                $model = $request->getModel();
+
+                $this->assertInstanceOf(\ArrayObject::class, $model);
+
+                $this->assertEquals([
+                    'token' => 'tok_xxx',
+                ], (array) $model);
+
+                $model['id'] = 'tok_xxx';
+                $model['card'] = [
+                    'id' => 'card_zzz',
+                    'fingerprint' => 'fingerprint_zzz',
+                ];
+            });
+        ;
+
+        $gatewayMock
+            ->expects($this->at(2))
+            ->method('execute')
+            ->with($this->isInstanceOf(CreateCustomerSource::class))
+            ->willReturnCallback(function(CreateCustomerSource $request) {
+                $model = $request->getModel();
+
+                $this->assertInstanceOf(\ArrayObject::class, $model);
+
+                $this->assertEquals([
+                    'customer' => 'cus_xxx',
+                    'source' => 'tok_xxx',
+                ], (array) $model);
+
+                $model['id'] = 'card_zzz';
+                $model['fingerprint'] = 'fingerprint_zzz';
+            });
+        ;
+
+        $context = new Context($gatewayMock, $request, []);
+
+        $extension = new CreateCustomerExtension();
+        $extension->onPreExecute($context);
+
+        $this->assertEquals([
+            'customer' => 'cus_xxx',
+            'local' => [
+                'save_card' => true,
+                'customer' => [
+                    'id' => 'cus_xxx',
+                    'source' => 'tok_xxx',
+                    'default_source' => 'card_xxx',
+                    'foo' => 'fooVal',
+                    'bar' => 'barVal',
+                    'sources' => [
+                        'object' => 'list',
+                        'data' => [
+                            [
+                                'id' => 'card_xxx',
+                                'fingerprint' => 'fingerprint_xxx',
+                            ],
+                            [
+                                'id' => 'card_yyy',
+                                'fingerprint' => 'fingerprint_yyy',
+                            ],
+                        ],
+                    ],
+                ],
+                'card_id' => 'card_zzz',
+            ],
+            'source' => 'card_zzz',
         ], (array) $request->getModel());
     }
 
     public function testShouldSetStatusFailedIfCreateCustomerRequestFailedOnPreCapture()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -148,7 +372,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'tok_xxx'], (array) $model);
 
                 // we assume the customer creation has failed when the customer does not have an id set.
                 $model['id'] = null;
@@ -167,7 +391,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => null,
-                    'source' => 'theCardToken',
+                    'source' => 'tok_xxx',
                     'error' => 'someError'
                 ],
                 'card_id' => null,
@@ -179,7 +403,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldDoNothingIfNotCaptureRequestOnPreExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -198,7 +422,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPreExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -208,7 +432,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldDoNothingIfSaveCardNotSetOnPreExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
         ]);
         $request = new Capture($model);
 
@@ -224,14 +448,14 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPreExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
         ], (array) $request->getModel());
     }
 
     public function testShouldDoNothingIfSaveCardSetToFalseOnPreExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => false,
             ],
@@ -250,7 +474,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPreExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => false,
             ],
@@ -289,7 +513,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldCreateCustomerAndReplaceCardTokenOnPostObtainToken()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => ['save_card' => true],
         ]);
         $request = new ObtainToken($model);
@@ -304,10 +528,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'tok_xxx'], (array) $model);
 
                 $model['id'] = 'theCustomerId';
-                $model['default_source'] = 'theCardToken';
+                $model['default_source'] = 'card_xxx';
             });
         ;
 
@@ -322,19 +546,19 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => 'theCustomerId',
-                    'default_source' => 'theCardToken',
-                    'source' => 'theCardToken',
+                    'default_source' => 'card_xxx',
+                    'source' => 'tok_xxx',
                 ],
-                'card_id' => 'theCardToken',
+                'card_id' => 'card_xxx',
             ],
-            'source' => 'theCardToken',
+            'source' => 'card_xxx',
         ], (array) $request->getModel());
     }
 
     public function testShouldCreateCustomerWithCustomInfoAndReplaceCardTokenOnPostObtainToken()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
                 'customer' => ['foo' => 'fooVal', 'bar' => 'barVal'],
@@ -353,13 +577,13 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
                 $this->assertEquals([
-                    'source' => 'theCardToken',
+                    'source' => 'tok_xxx',
                     'foo' => 'fooVal',
                     'bar' => 'barVal',
                 ], (array) $model);
 
                 $model['id'] = 'theCustomerId';
-                $model['default_source'] = 'theCardToken';
+                $model['default_source'] = 'card_xxx';
             });
         ;
 
@@ -376,19 +600,19 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'id' => 'theCustomerId',
                     'foo' => 'fooVal',
                     'bar' => 'barVal',
-                    'default_source' => 'theCardToken',
-                    'source' => 'theCardToken',
+                    'default_source' => 'card_xxx',
+                    'source' => 'tok_xxx',
                 ],
-                'card_id' => 'theCardToken',
+                'card_id' => 'card_xxx',
             ],
-            'source' => 'theCardToken',
+            'source' => 'card_xxx',
         ], (array) $request->getModel());
     }
 
     public function testShouldSetStatusFailedIfCreateCustomerRequestFailedOnPostObtainToken()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -405,7 +629,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
 
                 $this->assertInstanceOf(\ArrayObject::class, $model);
 
-                $this->assertEquals(['source' => 'theCardToken'], (array) $model);
+                $this->assertEquals(['source' => 'tok_xxx'], (array) $model);
 
                 // we assume the customer creation has failed when the customer does not have an id set.
                 $model['id'] = null;
@@ -424,7 +648,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                 'save_card' => true,
                 'customer' => [
                     'id' => null,
-                    'source' => 'theCardToken',
+                    'source' => 'tok_xxx',
                     'error' => 'someError',
                 ],
                 'card_id' => null,
@@ -436,7 +660,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldDoNothingIfNotCaptureRequestOnPostExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -455,7 +679,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPostExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => true,
             ],
@@ -465,7 +689,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
     public function testShouldDoNothingIfSaveCardNotSetOnPostExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
         ]);
         $request = new ObtainToken($model);
 
@@ -481,14 +705,14 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPostExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
         ], (array) $request->getModel());
     }
 
     public function testShouldDoNothingIfSaveCardSetToFalseOnPostExecute()
     {
         $model = new \ArrayObject([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => false,
             ],
@@ -507,7 +731,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
         $extension->onPostExecute($context);
 
         $this->assertEquals([
-            'card' => 'theCardToken',
+            'card' => 'tok_xxx',
             'local' => [
                 'save_card' => false,
             ],
