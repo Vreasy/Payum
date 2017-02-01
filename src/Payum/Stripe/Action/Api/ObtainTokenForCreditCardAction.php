@@ -7,7 +7,7 @@ use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\ObtainCreditCard;
 use Payum\Stripe\Constants;
-use Payum\Stripe\Request\Api\CreateTokenForCreditCard;
+use Payum\Core\Request\CreateTokenForCreditCard;
 use Payum\Stripe\Request\Api\ObtainToken;
 
 class ObtainTokenForCreditCardAction extends GatewayAwareAction
