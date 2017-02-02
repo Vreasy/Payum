@@ -26,6 +26,7 @@ use Payum\Stripe\Extension\CreateCustomerExtension;
 use Payum\Stripe\Action\StatusAction;
 use Payum\Stripe\Action\ErrorAction;
 use Payum\Stripe\Action\TransactionInfoAction;
+use Payum\Stripe\Action\CreateTokenForCreditCardAction;
 use Stripe\Stripe;
 
 class StripeCheckoutGatewayFactory extends GatewayFactory
@@ -71,6 +72,7 @@ class StripeCheckoutGatewayFactory extends GatewayFactory
             'payum.action.confirm_payment' => function (ArrayObject $config) {
                 return new ConfirmPaymentAction($config['payum.template.confirm_payment']);
             },
+            'payum.action.create_token_for_credit_card' => new CreateTokenForCreditCardAction(),
 
             'payum.extension.create_customer' => new CreateCustomerExtension(),
         ]);
