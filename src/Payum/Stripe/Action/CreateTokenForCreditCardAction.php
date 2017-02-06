@@ -41,8 +41,11 @@ class CreateTokenForCreditCardAction extends GatewayAwareAction
         $token['card'] = $cardData;
 
         $this->gateway->execute(new CreateToken($token));
-
-        $request->setToken($token->toUnsafeArray());
+        $token = $token->toUnsafeArray();
+        $request->setModel($token);
+        if (isset($token['id'])) {
+            $request->setToken($token['id']);
+        }
     }
 
     /**
