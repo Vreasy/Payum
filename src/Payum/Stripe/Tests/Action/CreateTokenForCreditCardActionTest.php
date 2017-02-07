@@ -105,7 +105,7 @@ class CreateTokenForCreditCardActionTest extends GenericActionTest
         $action->execute($createTokenForCreditCard = new CreateTokenForCreditCard($card));
 
         $token = $createTokenForCreditCard->getToken();
-        $this->assertEquals('myToken', $token['id']);
+        $this->assertEquals('myToken', $token);
     }
 
     /**
