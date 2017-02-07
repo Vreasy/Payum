@@ -20,7 +20,7 @@ class ErrorAction implements ActionInterface
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
 
-        if (@$model['error']) {
+        if (isset($model['error'])) {
             $request->setOriginalErrorCode(
                 @$model['error']['code'] ?: @$model['error']['type'] ?: @$model['error']['message']
             );
@@ -45,8 +45,6 @@ class ErrorAction implements ActionInterface
                         $request->markMissingCreditCard();
                         break;
                 }
-            } elseif (@$model['error']['type'] == 'invalid_request_error') {
-                $request->markInvalidRequest();
             } else {
                 $request->markUnknown();
             }

@@ -96,6 +96,7 @@ class CreateTokenForCreditCardActionTest extends GenericActionTest
             ->will($this->returnCallback(function (CreateToken $request) {
                 $model = ArrayObject::ensureArrayObject($request->getModel());
                 $model->replace(['id' => 'myToken']);
+                $request->setModel($model);
             }))
         ;
 

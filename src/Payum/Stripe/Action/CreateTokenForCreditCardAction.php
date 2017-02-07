@@ -26,22 +26,21 @@ class CreateTokenForCreditCardAction extends GatewayAwareAction
         /** @var CreditCardInterface $card */
         $card = $request->getCard();
 
-        $token = ArrayObject::ensureArrayObject($request->getToken());
-
         $cardData = [
-            'number' => $card->getNumber(),
-            'exp_month' => $card->getExpireAt()->format('m'),
-            'exp_year' => $card->getExpireAt()->format('Y'),
+            'card' => [
+                'number' => $card->getNumber(),
+                'exp_month' => $card->getExpireAt()->format('m'),
+                'exp_year' => $card->getExpireAt()->format('Y'),
+            ]
         ];
 
         if ($card->getSecurityCode()) {
-            $cardData['cvc'] = $card->getSecurityCode();
+            $cardData['card']['cvc'] = $card->getSecurityCode();
         }
 
-        $token['card'] = $cardData;
-
-        $this->gateway->execute(new CreateToken($token));
-        $token = $token->toUnsafeArray();
+        $model = ArrayObject::ensureArrayObject($cardData);
+        $this->gateway->execute($token = new CreateToken($model));
+        $token = $token->getModel()->toUnsafeArray();
         $request->setModel($token);
         if (isset($token['id'])) {
             $request->setToken($token['id']);

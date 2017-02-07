@@ -43,9 +43,10 @@ class CreateTokenAction extends GatewayAwareAction implements ApiAwareInterface
             );
 
             $model->replace($token->__toArray(true));
+            $request->setModel($model);
         } catch (Error\Base $e) {
             if ($e->getJsonBody()) {
-                $model->replace($e->getJsonBody());
+                $request->setModel(ArrayObject::ensureArrayObject($e->getJsonBody()));
             } else {
                 throw($e);
             }

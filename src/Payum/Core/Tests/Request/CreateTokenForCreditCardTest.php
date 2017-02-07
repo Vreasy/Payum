@@ -38,7 +38,7 @@ class CreateTokenForCreditCardTest extends \PHPUnit_Framework_TestCase
 
         $request = new CreateTokenForCreditCard($card);
 
-        $this->assertSame([], $request->getToken());
+        $this->assertSame(null, $request->getToken());
     }
 
     /**

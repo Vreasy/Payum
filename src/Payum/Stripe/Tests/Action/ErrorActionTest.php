@@ -186,24 +186,6 @@ class ErrorActionTest extends GenericActionTest
     /**
      * @test
      */
-    public function shouldMarkInvalidRequestIfErrorTypeIsinvalid_request_error()
-    {
-        $action = new ErrorAction();
-
-        $model = [
-            'error' => [
-                'type' => 'invalid_request_error',
-            ],
-        ];
-
-        $action->execute($error = new GetError($model));
-
-        $this->assertTrue($error->isInvalidRequest());
-    }
-
-    /**
-     * @test
-     */
     public function shouldMarkUnknownIfErrorTypeIsUnknown()
     {
         $action = new ErrorAction();
