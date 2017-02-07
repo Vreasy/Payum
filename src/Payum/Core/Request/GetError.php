@@ -131,6 +131,14 @@ class GetError extends Generic implements GetErrorInterface
     /**
      * @return boolean
      */
+    public function isInvalidRequest()
+    {
+        return $this->error_code === self::INVALID_REQUEST;
+    }
+
+    /**
+     * @return boolean
+     */
     public function isUnknown()
     {
         return $this->error_code === self::UNKNOWN;

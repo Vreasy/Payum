@@ -45,6 +45,10 @@ class ErrorAction implements ActionInterface
                         $request->markMissingCreditCard();
                         break;
                 }
+            } elseif (@$model['error']['type'] == 'invalid_request_error') {
+                $request->markInvalidRequest();
+            } else {
+                $request->markUnknown();
             }
         }
     }

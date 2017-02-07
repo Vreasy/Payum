@@ -183,6 +183,41 @@ class ErrorActionTest extends GenericActionTest
         $this->assertTrue($error->isDeclinedCreditCard());
     }
 
+    /**
+     * @test
+     */
+    public function shouldMarkInvalidRequestIfErrorTypeIsinvalid_request_error()
+    {
+        $action = new ErrorAction();
+
+        $model = [
+            'error' => [
+                'type' => 'invalid_request_error',
+            ],
+        ];
+
+        $action->execute($error = new GetError($model));
+
+        $this->assertTrue($error->isInvalidRequest());
+    }
+
+    /**
+     * @test
+     */
+    public function shouldMarkUnknownIfErrorTypeIsUnknown()
+    {
+        $action = new ErrorAction();
+
+        $model = [
+            'error' => [
+                'type' => 'some_unknown_error',
+            ],
+        ];
+
+        $action->execute($error = new GetError($model));
+
+        $this->assertTrue($error->isUnknown());
+    }
 
     /**
      * @test
