@@ -53,7 +53,7 @@ class CaptureChargeAction implements ActionInterface, ApiAwareInterface
             Stripe::setApiKey($this->api->getSecretKey());
 
             $charge = Charge::retrieve($model['id'], $this->getStripeHeaders($request));
-            $charge->capture();
+            $charge->capture(isset($model['expand']) ? ['expand' => $model['expand']] : []);
 
             $model->replace($charge->__toArray(true));
         } catch (Error\Base $e) {
