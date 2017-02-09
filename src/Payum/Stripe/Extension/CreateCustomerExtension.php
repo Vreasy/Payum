@@ -102,26 +102,25 @@ class CreateCustomerExtension implements ExtensionInterface
             : $model['card'];
         if (@$customer['id']) {
             if ($model['card'] instanceof SensitiveValue || substr($model['card'], 0, 3) == 'tok') {
-                $cardId = null;
+                $cardDetails = null;
                 // If a card token is sent, fetch the available cards of the customer and try
                 // to find one with a matching fingerprint
                 if (substr($model['card'], 0, 3) == 'tok') {
                     $token = ArrayObject::ensureArrayObject(['token' => $model['card']]);
                     $gateway->execute(new RetrieveToken($token));
-                    $cards = @$customer['sources']['data'] ?: [];
                     if ($card = current(array_filter(
                         @$customer['sources']['data'] ?: [],
                         function ($card) use ($token) {
                             return $card['fingerprint'] == $token['card']['fingerprint'];
                         }
                     ))) {
-                        $cardId = $card['id'];
+                        $cardDetails = $card;
                     }
                 }
 
                 // If no card token was sent, or if no card was found matching the fingerprint of
                 // the token, create a new card for the customer
-                if (!$cardId) {
+                if (!$cardDetails) {
                     $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
                     $gateway->execute(new CreateCustomerSource($customerSource));
                     if (!@$customerSource['id']) {
@@ -129,16 +128,38 @@ class CreateCustomerExtension implements ExtensionInterface
                         $model['error'] = @$customerSource['error'];
                         return;
                     }
-                    $cardId = $customerSource['id'];
+                    $cardDetails = $customerSource->toUnsafeArray();
                 }
 
-                $local['card_id'] = $cardId;
+                $local['card_details'] = $cardDetails;
             } else {
-                $local['card_id'] = $model['card'];
+                if ($card = current(array_filter(
+                    @$customer['sources']['data'] ?: [],
+                    function ($card) use ($model) {
+                        return $card['id'] == $model['card'];
+                    }
+                ))) {
+                    $local['card_details'] = $card;
+                } else {
+                    $local['card_details'] = [
+                        'id' => $model['card'],
+                    ];
+                }
             }
         } else {
             $gateway->execute(new CreateCustomer($customer));
-            $local['card_id'] = $customer['default_source'];
+            if ($card = current(array_filter(
+                @$customer['sources']['data'] ?: [],
+                function ($card) use ($customer) {
+                    return $card['id'] == $customer['default_source'];
+                }
+            ))) {
+                $local['card_details'] = $card;
+            } elseif (@$customer['default_source']) {
+                $local['card_details'] = [
+                    'id' => @$customer['default_source'],
+                ];
+            }
         }
 
         $customer = $customer->toUnsafeArray();
@@ -167,7 +188,7 @@ class CreateCustomerExtension implements ExtensionInterface
                 }
             } else {
                 $model['customer'] = $customer['id'];
-                $model['source'] = $local['card_id'];
+                $model['source'] = $local['card_details']['id'];
             }
         } else {
             $model['status'] = Constants::STATUS_FAILED;

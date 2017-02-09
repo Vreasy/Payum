@@ -36,7 +36,7 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
             'local' => ['save_card' => true],
         ]);
         $request = new Capture($model);
-        
+
         $gatewayMock = $this->createGatewayMock();
         $gatewayMock
             ->expects($this->at(0))
@@ -68,7 +68,9 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'source' => 'tok_xxx',
                     'default_source' => 'card_xxx',
                 ],
-                'card_id' => 'card_xxx',
+                'card_details' => [
+                    'id' => 'card_xxx',
+                ],
             ],
             'source' => 'card_xxx',
         ], (array) $request->getModel());
@@ -123,7 +125,9 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'foo' => 'fooVal',
                     'bar' => 'barVal'
                 ],
-                'card_id' => 'card_xxx',
+                'card_details' => [
+                    'id' => 'card_xxx',
+                ],
             ],
             'source' => 'card_xxx',
         ], (array) $request->getModel());
@@ -225,7 +229,10 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                         ],
                     ],
                 ],
-                'card_id' => 'card_xxx',
+                'card_details' => [
+                    'id' => 'card_xxx',
+                    'fingerprint' => 'fingerprint_xxx',
+                ]
             ],
             'source' => 'card_xxx',
         ], (array) $request->getModel());
@@ -346,7 +353,12 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                         ],
                     ],
                 ],
-                'card_id' => 'card_zzz',
+                'card_details' => [
+                    'id' => 'card_zzz',
+                    'fingerprint' => 'fingerprint_zzz',
+                    'customer' => 'cus_xxx',
+                    'source' => 'tok_xxx',
+                ],
             ],
             'source' => 'card_zzz',
         ], (array) $request->getModel());
@@ -394,7 +406,6 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'source' => 'tok_xxx',
                     'error' => 'someError'
                 ],
-                'card_id' => null,
             ],
             'error' => 'someError',
         ], (array) $request->getModel());
@@ -549,7 +560,9 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'default_source' => 'card_xxx',
                     'source' => 'tok_xxx',
                 ],
-                'card_id' => 'card_xxx',
+                'card_details' => [
+                    'id' => 'card_xxx',
+                ],
             ],
             'source' => 'card_xxx',
         ], (array) $request->getModel());
@@ -603,7 +616,9 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'default_source' => 'card_xxx',
                     'source' => 'tok_xxx',
                 ],
-                'card_id' => 'card_xxx',
+                'card_details' => [
+                    'id' => 'card_xxx',
+                ],
             ],
             'source' => 'card_xxx',
         ], (array) $request->getModel());
@@ -651,7 +666,6 @@ class CreateCustomerExtensionTest extends \PHPUnit_Framework_TestCase
                     'source' => 'tok_xxx',
                     'error' => 'someError',
                 ],
-                'card_id' => null,
             ],
             'error' => 'someError',
         ], (array) $request->getModel());
