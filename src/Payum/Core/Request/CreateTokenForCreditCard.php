@@ -6,9 +6,9 @@ use Payum\Core\Model\CreditCardInterface;
 class CreateTokenForCreditCard extends Generic
 {
     /**
-     * @var array|\ArrayAccess
+     * @var string
      */
-    protected $token = [];
+    protected $token;
 
     /**
      * @var CreditCardInterface

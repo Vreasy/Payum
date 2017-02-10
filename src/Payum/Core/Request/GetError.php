@@ -7,7 +7,6 @@ class GetError extends Generic implements GetErrorInterface
     const CREDIT_CARD_EXPIRED = 'credit_card_expired';
     const CREDIT_CARD_DECLINED = 'credit_card_declined';
     const CREDIT_CARD_MISSING = 'credit_card_missing';
-    const INVALID_REQUEST = 'invalid_request';
     const UNKNOWN = 'unknown';
 
     protected $error_code;
@@ -83,14 +82,6 @@ class GetError extends Generic implements GetErrorInterface
     /**
      * @return boolean
      */
-    public function markInvalidRequest()
-    {
-        $this->error_code = self::INVALID_REQUEST;
-    }
-
-    /**
-     * @return boolean
-     */
     public function markUnknown()
     {
         $this->error_code = self::UNKNOWN;
@@ -126,14 +117,6 @@ class GetError extends Generic implements GetErrorInterface
     public function isMissingCreditCard()
     {
         return $this->error_code === self::CREDIT_CARD_MISSING;
-    }
-
-    /**
-     * @return boolean
-     */
-    public function isInvalidRequest()
-    {
-        return $this->error_code === self::INVALID_REQUEST;
     }
 
     /**
