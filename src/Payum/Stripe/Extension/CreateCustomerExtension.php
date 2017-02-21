@@ -179,7 +179,8 @@ class CreateCustomerExtension implements ExtensionInterface
                 $token['local'] = [
                     'stripe_headers' => @$local['stripe_headers'] ?: []
                 ];
-                $gateway->execute(new CreateToken($token));
+                $gateway->execute($token = new CreateToken($token));
+                $token = $token->getModel()->toUnsafeArray();
                 if (@$token['id']) {
                     $model['source'] = $token['id'];
                 } else {
