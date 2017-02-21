@@ -102,36 +102,15 @@ class CreateCustomerExtension implements ExtensionInterface
             : $model['card'];
         if (@$customer['id']) {
             if ($model['card'] instanceof SensitiveValue || substr($model['card'], 0, 3) == 'tok') {
-                $cardDetails = null;
-                // If a card token is sent, fetch the available cards of the customer and try
-                // to find one with a matching fingerprint
-                if (substr($model['card'], 0, 3) == 'tok') {
-                    $token = ArrayObject::ensureArrayObject(['token' => $model['card']]);
-                    $gateway->execute(new RetrieveToken($token));
-                    if ($card = current(array_filter(
-                        @$customer['sources']['data'] ?: [],
-                        function ($card) use ($token) {
-                            return $card['fingerprint'] == $token['card']['fingerprint'];
-                        }
-                    ))) {
-                        $cardDetails = $card;
-                    }
+                // Create a new card for the customer based on the card details or token
+                $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
+                $gateway->execute(new CreateCustomerSource($customerSource));
+                if (!@$customerSource['id']) {
+                    $model['status'] = Constants::STATUS_FAILED;
+                    $model['error'] = @$customerSource['error'];
+                    return;
                 }
-
-                // If no card token was sent, or if no card was found matching the fingerprint of
-                // the token, create a new card for the customer
-                if (!$cardDetails) {
-                    $customerSource = ArrayObject::ensureArrayObject(['customer' => $customer['id'], 'source' => $customer['source']]);
-                    $gateway->execute(new CreateCustomerSource($customerSource));
-                    if (!@$customerSource['id']) {
-                        $model['status'] = Constants::STATUS_FAILED;
-                        $model['error'] = @$customerSource['error'];
-                        return;
-                    }
-                    $cardDetails = $customerSource->toUnsafeArray();
-                }
-
-                $local['card_details'] = $cardDetails;
+                $local['card_details'] = $customerSource->toUnsafeArray();
             } else {
                 if ($card = current(array_filter(
                     @$customer['sources']['data'] ?: [],
@@ -175,7 +154,7 @@ class CreateCustomerExtension implements ExtensionInterface
                 // For direct payments into a connected account, we must create a customer token
                 $token = ArrayObject::ensureArrayObject([]);
                 $token['customer'] = $customer['id'];
-                $token['card'] = $local['card_id'];
+                $token['card'] = $local['card_details']['id'];
                 $token['local'] = [
                     'stripe_headers' => @$local['stripe_headers'] ?: []
                 ];
@@ -222,17 +201,17 @@ class CreateCustomerExtension implements ExtensionInterface
     protected function updateCustomer($gateway, $model)
     {
         $local = $model->getArray('local');
-        if (!@$local['card_id'] || !@$local['customer'] || !$local['save_card']) {
+        if (!@$local['card_details'] || !@$local['customer'] || !$local['save_card']) {
             return;
         }
 
         $customer = $local->getArray('customer');
-        if (!@$customer['id'] || @$model['error'] || @$customer['default_source'] == @$local['card_id']) {
+        if (!@$customer['id'] || @$model['error'] || @$customer['default_source'] == @$local['card_details']['id']) {
             return;
         }
 
         $customer = ArrayObject::ensureArrayObject($customer);
-        $customer['default_source'] = $local['card_id'];
+        $customer['default_source'] = $local['card_details']['id'];
         $gateway->execute(new UpdateCustomer($customer));
 
         if (!@$customer['id']) {
