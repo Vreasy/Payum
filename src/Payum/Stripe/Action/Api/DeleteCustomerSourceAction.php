@@ -5,9 +5,8 @@ use Payum\Core\Action\GatewayAwareAction;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
-use Payum\Core\Exception\LogicException;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Stripe\Request\Api\RetrieveCustomer;
+use Payum\Stripe\Request\Api\DeleteCustomerSource;
 use Payum\Stripe\StripeHeadersInterface;
 use Payum\Stripe\StripeHeadersTrait;
 use Payum\Stripe\Keys;
@@ -15,7 +14,7 @@ use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
 
-class RetrieveCustomerAction extends GatewayAwareAction implements ApiAwareInterface
+class DeleteCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
 {
     use ApiAwareTrait;
     use StripeHeadersTrait;
@@ -30,28 +29,24 @@ class RetrieveCustomerAction extends GatewayAwareAction implements ApiAwareInter
      */
     public function execute($request)
     {
-        /** @var $request CreateCharge */
+        /** @var $request CreateCustomer */
         RequestNotSupportedException::assertSupports($this, $request);
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
         $model->validateNotEmpty(array(
-            'id',
+            'customer',
+            'id'
         ));
 
         try {
             Stripe::setApiKey($this->api->getSecretKey());
 
-            $customer = Customer::retrieve($model['id'], $this->getStripeHeaders($request));
+            $customer = Customer::retrieve($model['customer'], $this->getStripeHeaders($request));
+            $source = $customer->sources->retrieve($model['id']);
+            $deletedCard = $source->delete();
 
-            $local = $model->getArray('local');
-            if (isset($local['retrieve_all_cards'])) {
-                $data = [];
-                foreach ($customer->sources->autoPagingIterator() as $i => $source) {
-                    $data[] = $source;
-                }
-                $customer->sources->data = $data;
-            }
-            $model->replace($customer->__toArray(true));
+            $model->replace($deletedCard->__toArray(true));
+
         } catch (Error\Base $e) {
             if ($e->getJsonBody()) {
                 $model->replace($e->getJsonBody());
@@ -67,7 +62,7 @@ class RetrieveCustomerAction extends GatewayAwareAction implements ApiAwareInter
     public function supports($request)
     {
         return
-            $request instanceof RetrieveCustomer &&
+            $request instanceof DeleteCustomerSource &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }
