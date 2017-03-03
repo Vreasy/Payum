@@ -13,6 +13,7 @@ use Payum\Stripe\Keys;
 use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
+use Stripe\Card;
 
 class DeleteCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
 {
@@ -41,8 +42,8 @@ class DeleteCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
         try {
             Stripe::setApiKey($this->api->getSecretKey());
 
-            $customer = Customer::retrieve($model['customer'], $this->getStripeHeaders($request));
-            $source = $customer->sources->retrieve($model['id']);
+            $source = new Card($model['id']);
+            $source->customer = $model['customer'];
             $deletedCard = $source->delete();
 
             $model->replace($deletedCard->__toArray(true));

@@ -13,6 +13,7 @@ use Payum\Stripe\Keys;
 use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
+use Stripe\Collection;
 
 class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
 {
@@ -40,9 +41,14 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
 
         try {
             Stripe::setApiKey($this->api->getSecretKey());
-
-            $customer = Customer::retrieve($model['customer'], $this->getStripeHeaders($request));
-            $createdCard = $customer->sources->create(array("card" => $model['source']));
+            $sources = Collection::constructFrom(
+                [
+                    'object' => 'list',
+                    'url' => Customer::resourceUrl($model['customer']) . '/sources',
+                ],
+                []
+            );
+            $createdCard = $sources->create(array("card" => $model['source']));
 
             $model->replace($createdCard->__toArray(true));
 
