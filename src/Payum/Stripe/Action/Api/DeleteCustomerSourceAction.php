@@ -6,16 +6,16 @@ use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Stripe\Request\Api\CreateCustomerSource;
+use Payum\Stripe\Request\Api\DeleteCustomerSource;
 use Payum\Stripe\StripeHeadersInterface;
 use Payum\Stripe\StripeHeadersTrait;
 use Payum\Stripe\Keys;
 use Stripe\Customer;
 use Stripe\Error;
 use Stripe\Stripe;
-use Stripe\Collection;
+use Stripe\Card;
 
-class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
+class DeleteCustomerSourceAction extends GatewayAwareAction implements ApiAwareInterface
 {
     use ApiAwareTrait;
     use StripeHeadersTrait;
@@ -36,21 +36,17 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
         $model = ArrayObject::ensureArrayObject($request->getModel());
         $model->validateNotEmpty(array(
             'customer',
-            'source'
+            'id'
         ));
 
         try {
             Stripe::setApiKey($this->api->getSecretKey());
-            $sources = Collection::constructFrom(
-                [
-                    'object' => 'list',
-                    'url' => Customer::resourceUrl($model['customer']) . '/sources',
-                ],
-                []
-            );
-            $createdCard = $sources->create(array("card" => $model['source']));
 
-            $model->replace($createdCard->__toArray(true));
+            $source = new Card($model['id']);
+            $source->customer = $model['customer'];
+            $deletedCard = $source->delete();
+
+            $model->replace($deletedCard->__toArray(true));
 
         } catch (Error\Base $e) {
             if ($e->getJsonBody()) {
@@ -67,7 +63,7 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
     public function supports($request)
     {
         return
-            $request instanceof CreateCustomerSource &&
+            $request instanceof DeleteCustomerSource &&
             $request->getModel() instanceof \ArrayAccess
         ;
     }

@@ -43,6 +43,14 @@ class RetrieveCustomerAction extends GatewayAwareAction implements ApiAwareInter
 
             $customer = Customer::retrieve($model['id'], $this->getStripeHeaders($request));
 
+            $local = $model->getArray('local');
+            if (isset($local['retrieve_all_cards'])) {
+                $data = [];
+                foreach ($customer->sources->autoPagingIterator() as $i => $source) {
+                    $data[] = $source;
+                }
+                $customer->sources->data = $data;
+            }
             $model->replace($customer->__toArray(true));
         } catch (Error\Base $e) {
             if ($e->getJsonBody()) {
