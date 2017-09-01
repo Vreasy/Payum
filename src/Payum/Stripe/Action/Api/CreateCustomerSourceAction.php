@@ -48,7 +48,11 @@ class CreateCustomerSourceAction extends GatewayAwareAction implements ApiAwareI
                 ],
                 []
             );
-            $createdCard = $sources->create(array("card" => $model['source']));
+            $createdCard = $sources->create(array(
+                "source" => is_string($model['source'])
+                    ? $model['source']
+                    : array_merge($model['source'], array("object" => "card"))
+            ));
 
             $model->replace($createdCard->__toArray(true));
 
